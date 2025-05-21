@@ -158,7 +158,7 @@ lazy val chipyard = (project in file("generators/chipyard"))
     dsptools, rocket_dsp_utils,
     radiance, gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
     constellation, mempress, barf, shuttle, caliptra_aes, rerocc,
-    compressacc, saturn, ara, firrtl2_bridge, vexiiriscv, tacit)
+    compressacc, saturn, ara, firrtl2_bridge, vexiiriscv, tacit, msaga)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(
     libraryDependencies ++= Seq(
@@ -261,6 +261,16 @@ lazy val gemmini = freshProject("gemmini", file("generators/gemmini"))
 
 lazy val nvdla = (project in file("generators/nvdla"))
   .dependsOn(rocketchip, testchipip)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+
+lazy val easyfloat = freshProject("easyfloat", file("generators/easyfloat"))
+  .settings(chiselSettings)
+  .settings(commonSettings)
+  .settings(scalaTestSettings)
+
+lazy val msaga = (project in file("generators/msaga"))
+  .dependsOn(rocketchip, easyfloat, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 

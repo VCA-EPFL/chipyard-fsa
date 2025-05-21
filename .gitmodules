@@ -163,3 +163,9 @@
 [submodule "generators/radiance"]
 	path = generators/radiance
 	url = https://github.com/ucb-bar/radiance.git
+[submodule "generators/msaga"]
+	path = generators/msaga
+	url = git@github.com:VCA-EPFL/MSAGA.git
+[submodule "generators/easyfloat"]
+	path = generators/easyfloat
+	url = git@github.com:VCA-EPFL/easyfloat.git
