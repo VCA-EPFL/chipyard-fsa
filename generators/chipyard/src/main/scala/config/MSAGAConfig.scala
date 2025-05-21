@@ -108,9 +108,15 @@ class WithMSAGADirectAXI4IOBinder extends OverrideLazyIOBinder({
   }
 })
 
-class WithMSAGADirectAXI4 extends Config((site, here, up) => {
+class WithMSAGADirectAXI4(
+  memBase: BigInt = 0x80000000L,
+  memSize: BigInt = 0x10000000L,
+  memBeatBytes: Int = 8,
+  memMaxTransferBytes: Int = 256,
+  memIdBits: Int = 1
+) extends Config((site, here, up) => {
   case AXI4DirectMemPortKey => Some(MemoryPortParams(
-    MasterPortParams(0x80000000L, 0x10000000L, beatBytes = 8, idBits = 4),
+    MasterPortParams(memBase, memSize, beatBytes = 8, idBits = 4),
     nMemoryChannels = site(MSAGAKey).get.nMemPorts
   ))
   case BuildSystem => (p: Parameters) => new DigitalTop()(p) with CanHaveMSAGADirectAXI4
@@ -119,7 +125,7 @@ class WithMSAGADirectAXI4 extends Config((site, here, up) => {
 class WithMBusZeroDevice extends Config((site, here, up) => {
   case MemoryBusKey => up(MemoryBusKey).copy(
     zeroDevice = Some(BuiltInZeroDeviceParams(
-      addr = AddressSet(0x4000, 0xfff)
+      addr = AddressSet(0x5000, 0xfff)
     ))
   )
 })
@@ -139,3 +145,21 @@ class MSAGADirectAXI4Config extends Config(
   new WithNoMemPort ++
   new NoCoresConfig
 )
+
+class WithFbusBeatBytes(n: Int) extends Config((site, here, up) => {
+  case FrontBusKey => up(FrontBusKey).copy(
+    beatBytes = n
+  )
+})
+
+class MSAGAFPGAConfig(freqMHz: Int) extends Config(
+  new WithCustomSlavePort(data_width = 32, id_bits = 1) ++
+  new WithFbusBeatBytes(4) ++
+  new WithNoSerialTL ++
+  new WithMBusErrorDevice ++
+  new WithHarnessBinderClockFreqMHz(freqMHz) ++
+  new WithUniformBusFrequencies(freqMHz) ++
+  new MSAGADirectAXI4Config
+)
+
+class MSAGAFPGA50MHzConfig extends MSAGAFPGAConfig(50)
