@@ -347,6 +347,7 @@ lazy val fpga_shells = (project in file("./fpga/fpga-shells"))
 lazy val chipyard_fpga = (project in file("./fpga"))
   .dependsOn(chipyard, fpga_shells)
   .settings(commonSettings)
+  .settings(chiselSettings)
 
 // Components of FireSim
 

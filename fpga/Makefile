@@ -100,6 +100,21 @@ ifeq ($(SUB_PROJECT),datastorm)
 	FPGA_BRAND        ?= altera
 endif
 
+ifeq ($(SUB_PROJECT),u55c)
+	SBT_PROJECT       ?= chipyard_fpga
+	MODEL             ?= U55CFPGATestHarness
+	VLOG_MODEL        ?= U55CFPGATestHarness
+	MODEL_PACKAGE     ?= chipyard.fpga.u55c
+	CONFIG            ?= MSAGAU55CConfig
+	CONFIG_PACKAGE    ?= chipyard.fpga.u55c
+	GENERATOR_PACKAGE ?= chipyard
+	TB                ?= none # unused
+	TOP               ?= ChipTop
+	BOARD             ?= u55c
+	FPGA_BRAND        ?= xilinx
+endif
+
+
 export USE_CHISEL6=1
 
 include $(base_dir)/variables.mk
