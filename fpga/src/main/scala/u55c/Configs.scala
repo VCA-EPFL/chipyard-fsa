@@ -7,7 +7,7 @@ class WithU55CTweaks extends Config(
   new chipyard.harness.WithTieOffL2FBusAXI ++
   // clocking
   new chipyard.harness.WithAllClocksFromHarnessClockInstantiator ++
-  new chipyard.harness.WithHarnessBinderClockFreqMHz(50) ++
+  new chipyard.harness.WithHarnessBinderClockFreqMHz(125) ++
   new chipyard.config.WithUniformBusFrequencies(50) ++
   new testchipip.serdes.WithNoSerialTL ++
   new testchipip.soc.WithNoScratchpads

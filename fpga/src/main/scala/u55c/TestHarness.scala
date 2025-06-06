@@ -18,13 +18,14 @@ class SysClockU55CPlacedOverlay
   val shell: U55CShellBasicOverlays,
   name: String,
   val designInput: ClockInputDesignInput,
-  val shellInput: ClockInputShellInput
+  val shellInput: ClockInputShellInput,
+  pPin: String, nPin: String
 ) extends LVDSClockInputXilinxPlacedOverlay(name, designInput, shellInput) {
   val node = shell { ClockSourceNode(freqMHz = 100, jitterPS = 50)(ValName(name)) }
 
   shell { InModuleBody {
-    shell.xdc.addPackagePin(io.n, "F23")
-    shell.xdc.addPackagePin(io.p, "F24")
+    shell.xdc.addPackagePin(io.n, nPin)
+    shell.xdc.addPackagePin(io.p, pPin)
     shell.xdc.addIOStandard(io.n, "LVDS")
     shell.xdc.addIOStandard(io.p, "LVDS")
   }}
@@ -33,9 +34,10 @@ class SysClockU55CPlacedOverlay
 class SysClockU55CShellPlacer
 (
   shell: U55CShellBasicOverlays,
-  val shellInput: ClockInputShellInput
+  val shellInput: ClockInputShellInput,
+  pPin: String, nPin: String
 )(implicit val valName: ValName) extends ClockInputShellPlacer[U55CShellBasicOverlays] {
-  override def place(di: ClockInputDesignInput) = new SysClockU55CPlacedOverlay(shell, valName.value, di, shellInput)
+  override def place(di: ClockInputDesignInput) = new SysClockU55CPlacedOverlay(shell, valName.value, di, shellInput, pPin, nPin)
 }
 
 abstract class U55CShellBasicOverlays()(implicit p: Parameters) extends UltraScaleShell {
@@ -44,7 +46,8 @@ abstract class U55CShellBasicOverlays()(implicit p: Parameters) extends UltraSca
   // PCIe reset
   val pcie_rst_n = InModuleBody { Wire(Bool()) }
 
-  val sys_clock = Overlay(ClockInputOverlayKey, new SysClockU55CShellPlacer(this, ClockInputShellInput()))
+  val sys_clock = Overlay(ClockInputOverlayKey, new SysClockU55CShellPlacer(this, ClockInputShellInput(), "F24", "F23"))
+  val hbm_clock = Overlay(ClockInputOverlayKey, new SysClockU55CShellPlacer(this, ClockInputShellInput(), "BK43", "BK44"))
   val xdma = Overlay(CustomXDMAOverlayKey, new U55CPCIeCustomXDMAShellPlacer(this, PCIeShellInput()))
 }
 
@@ -53,6 +56,7 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
   // place all clocks in the shell
   require(dp(ClockInputOverlayKey).nonEmpty)
   val sysClkNode = dp(ClockInputOverlayKey).head.place(ClockInputDesignInput()).overlayOutput.node
+  val hbmClkNode = dp(ClockInputOverlayKey).last.place(ClockInputDesignInput()).overlayOutput.node
 
   /*** Connect/Generate clocks ***/
   // connect to the PLL that will generate multiple clocks
@@ -61,11 +65,16 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
 
   val wrangler = LazyModule(new ResetWrangler)
 
-  val dutFreqMHz = 50
+  val dutFreqMHz = 125
   val dutFixedClockNode = FixedClockBroadcast(Some(ClockParameters(freqMHz = dutFreqMHz)))
+  /*
+  val hbmFreqMHZ = 100
+  val hbmFixedClockNode = FixedClockBroadcast(Some(ClockParameters(freqMHz = hbmFreqMHZ)))
+  */
   val dutClockGroup = ClockGroup()
   val dutClockNode = ClockSinkNode(freqMHz = dutFreqMHz)
   dutFixedClockNode := wrangler.node := dutClockGroup := harnessSysPLL
+  // hbmFixedClockNode := dutClockGroup
 
   dutClockNode := dutFixedClockNode
 
@@ -77,11 +86,23 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
   dutDomain.clockNode := dutFixedClockNode
 
   dutDomain {
+    /*
     val ram = AXI4RAM(
       address = AddressSet(0x80000000L, 0xfffff),
       beatBytes = placedXDMA.overlayOutput.config.busBytes
     )
-    ram := AXI4Fragmenter() := AXI4Buffer() := AXI4ILA("xdma_master") := placedXDMA.overlayOutput.master
+     */
+    val ram = LazyModule(new LazyXilinxHBMController(
+      "test"
+    ))
+
+    val xbar = LazyModule(new AXI4Xbar())
+
+    ram.node(0) := AXI4ILA("xdma_master") := xbar.node := AXI4Fragmenter() := placedXDMA.overlayOutput.master
+    ram.slaveClockNodes(0) := dutFixedClockNode
+    ram.HBMRefClockNode := hbmClkNode
+
+
     val inst = AXI4RAM(
       address = AddressSet(0x8000, 0xfff),
       beatBytes = 4

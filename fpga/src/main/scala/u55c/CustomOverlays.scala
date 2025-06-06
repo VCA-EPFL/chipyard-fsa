@@ -134,7 +134,8 @@ class U55CPCIeCustomXDMAShellPlacer(shell: U55CShellBasicOverlays, val shellInpu
   val config = CustomXDMAParams(
     name = "u55c_xdma",
     location = "PCIE4C_X1Y0",
-    lanes = 8
+    lanes = 8,
+    gen = 3
   )
   def place(designInput: CustomXDMADesignInput) = new U55CPCIeCustomXDMAPlacedOverlay(
     shell, valName.value, designInput, shellInput, config
