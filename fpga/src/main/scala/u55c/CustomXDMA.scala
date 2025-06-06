@@ -149,7 +149,7 @@ class CustomXDMABlackBox
        |  CONFIG.axilite_master_en                  {true}                 \\
        |  CONFIG.axilite_master_scale               {$scale}               \\
        |  CONFIG.axilite_master_size                {$size}                \\
-       |  CONFIG.pciebar2axibar_axil_master         {${baseHex}            \\
+       |  CONFIG.pciebar2axibar_axil_master         {${baseHex}}            \\
        |  CONFIG.pl_link_cap_max_link_width         {X${c.lanes}}          \\
        |  CONFIG.pl_link_cap_max_link_speed         {${pcieGTs}}           \\
        |] [get_ips ${desiredName}]
