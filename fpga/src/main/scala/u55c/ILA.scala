@@ -83,7 +83,9 @@ object AXI4ILA {
         Seq(
           axi.ar.fire, axi.aw.fire, axi.r.fire, axi.w.fire, axi.b.fire,
           axi.ar.valid, axi.ar.ready, axi.aw.valid, axi.aw.ready,
-          axi.ar.bits.addr, axi.aw.bits.addr, axi.r.valid, axi.r.ready, axi.r.bits.data, axi.w.ready, axi.w.valid
+          axi.ar.bits.addr, axi.aw.bits.addr, axi.r.valid, axi.r.ready, axi.r.bits.data, axi.w.ready, axi.w.valid,
+          axi.w.bits.data, axi.w.bits.last, axi.w.bits.strb, axi.aw.bits.size, axi.aw.bits.len
+
         )
       }
     }

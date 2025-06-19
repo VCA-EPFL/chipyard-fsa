@@ -106,7 +106,7 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
 
     // AXI4Fragmenter()
 
-    ram.node(0) := AXI4UserYanker(capMaxFlight = Some(8)) := AXI4ILA("xdma_master") := xbar.node := AXI4Fragmenter() := placedXDMA.overlayOutput.master
+    ram.node(0) := AXI4UserYanker(capMaxFlight = Some(8)) := xbar.node := AXI4Fragmenter() := placedXDMA.overlayOutput.master
     ram.slaveClockNodes(0) := dutFixedClockNode
     ram.HBMRefClockNode := hbmClkNode
 
