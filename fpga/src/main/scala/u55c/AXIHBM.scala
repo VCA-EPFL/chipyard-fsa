@@ -407,6 +407,7 @@ class LazyXilinxHBMController(moduleNamePrefix: String, portNum: Int = 1, is16GB
       )),
       beatBytes = 32,
       requestKeys = Seq(),
+      responseFields = Nil,
     ))
   ))
 
