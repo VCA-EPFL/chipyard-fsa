@@ -8,6 +8,7 @@ import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.amba.axi4._
 import freechips.rocketchip.diplomacy.AddressSet
 import freechips.rocketchip.prci._
+import msaga.{AXI4MSAGA, Configs, FpMSAGAImplKey}
 import sifive.fpgashells.ip.xilinx._
 import sifive.fpgashells.clocks.PLLFactoryKey
 import sifive.fpgashells.shell._
@@ -65,7 +66,7 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
 
   val wrangler = LazyModule(new ResetWrangler)
 
-  val dutFreqMHz = 125
+  val dutFreqMHz = 50
   val dutFixedClockNode = FixedClockBroadcast(Some(ClockParameters(freqMHz = dutFreqMHz)))
   /*
   val hbmFreqMHZ = 100
@@ -98,16 +99,26 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
 
     val xbar = LazyModule(new AXI4Xbar())
 
-    ram.node(0) := AXI4ILA("xdma_master") := xbar.node := AXI4Fragmenter() := placedXDMA.overlayOutput.master
+    val msaga = LazyModule(new AXI4MSAGA(p(FpMSAGAImplKey).get))
+
+    // val datawidthconverter = LazyModule(new LazyXilinxAXIDataWidthConverter("widthtest", placedXDMA.overlayOutput.config.busBytes))
+    // datawidthconverter.slaveClockNode := dutFixedClockNode
+
+    // AXI4Fragmenter()
+
+    ram.node(0) := AXI4UserYanker(capMaxFlight = Some(8)) := AXI4ILA("xdma_master") := xbar.node := AXI4Fragmenter() := placedXDMA.overlayOutput.master
     ram.slaveClockNodes(0) := dutFixedClockNode
     ram.HBMRefClockNode := hbmClkNode
 
+    // msaga.configNode := xbar.node
+    xbar.node :=  msaga.memNode
 
+    /*
     val inst = AXI4RAM(
       address = AddressSet(0x8000, 0xfff),
       beatBytes = 4
-    )
-    inst := AXI4Fragmenter() := AXI4Buffer() := AXI4ILA("xdma_master_lite") := placedXDMA.overlayOutput.masterLite
+    )*/
+    msaga.configNode := AXI4Fragmenter() := AXI4Buffer() := AXI4ILA("xdma_master_lite") := placedXDMA.overlayOutput.masterLite
   }
   override lazy val module: LazyRawModuleImp = new U55CTestHarnessImpl(this)
 }

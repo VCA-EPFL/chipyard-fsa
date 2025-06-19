@@ -1,5 +1,6 @@
 package chipyard.fpga.u55c
 
+import msaga.{Configs, WithFpMSAGA}
 import org.chipsalliance.cde.config._
 
 class WithU55CTweaks extends Config(
@@ -7,7 +8,7 @@ class WithU55CTweaks extends Config(
   new chipyard.harness.WithTieOffL2FBusAXI ++
   // clocking
   new chipyard.harness.WithAllClocksFromHarnessClockInstantiator ++
-  new chipyard.harness.WithHarnessBinderClockFreqMHz(125) ++
+  new chipyard.harness.WithHarnessBinderClockFreqMHz(50) ++
   new chipyard.config.WithUniformBusFrequencies(50) ++
   new testchipip.serdes.WithNoSerialTL ++
   new testchipip.soc.WithNoScratchpads
@@ -16,5 +17,6 @@ class WithU55CTweaks extends Config(
 // useful for xdma test
 class EmptyU55CConfig extends Config (
   new WithU55CTweaks ++
-  new chipyard.EmptyChipTopConfig
+  new chipyard.EmptyChipTopConfig ++
+  new WithFpMSAGA(params = Configs.fpgaMSAGAParams)
 )
