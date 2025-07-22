@@ -8,7 +8,7 @@ import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.amba.axi4._
 import freechips.rocketchip.diplomacy.AddressSet
 import freechips.rocketchip.prci._
-import msaga.{AXI4MSAGA, Configs, FpMSAGAImplKey}
+import fsa.{AXI4FSA, Configs, FpFSAImplKey}
 import sifive.fpgashells.ip.xilinx._
 import sifive.fpgashells.clocks.PLLFactoryKey
 import sifive.fpgashells.shell._
@@ -66,14 +66,14 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
 
   val wrangler = LazyModule(new ResetWrangler)
 
-  val dutFreqMHz = 50
-  val dutFixedClockNode = FixedClockBroadcast(Some(ClockParameters(freqMHz = dutFreqMHz)))
+  val dutFreqMHz = 70
+  val dutFixedClockNode = FixedClockBroadcast()
   /*
   val hbmFreqMHZ = 100
   val hbmFixedClockNode = FixedClockBroadcast(Some(ClockParameters(freqMHz = hbmFreqMHZ)))
   */
   val dutClockGroup = ClockGroup()
-  val dutClockNode = ClockSinkNode(freqMHz = dutFreqMHz)
+  val dutClockNode = ClockSinkNode(freqMHz = dutFreqMHz, jitterPS = 230)
   dutFixedClockNode := wrangler.node := dutClockGroup := harnessSysPLL
   // hbmFixedClockNode := dutClockGroup
 
@@ -87,38 +87,21 @@ class U55CFPGATestHarness(implicit p: Parameters) extends U55CShellBasicOverlays
   dutDomain.clockNode := dutFixedClockNode
 
   dutDomain {
-    /*
-    val ram = AXI4RAM(
-      address = AddressSet(0x80000000L, 0xfffff),
-      beatBytes = placedXDMA.overlayOutput.config.busBytes
-    )
-     */
     val ram = LazyModule(new LazyXilinxHBMController(
       "test"
     ))
 
     val xbar = LazyModule(new AXI4Xbar())
 
-    val msaga = LazyModule(new AXI4MSAGA(p(FpMSAGAImplKey).get))
-
-    // val datawidthconverter = LazyModule(new LazyXilinxAXIDataWidthConverter("widthtest", placedXDMA.overlayOutput.config.busBytes))
-    // datawidthconverter.slaveClockNode := dutFixedClockNode
-
-    // AXI4Fragmenter()
+    val fsa = LazyModule(new AXI4FSA(p(FpFSAImplKey).get))
 
     ram.node(0) := AXI4UserYanker(capMaxFlight = Some(8)) := xbar.node := AXI4Fragmenter() := placedXDMA.overlayOutput.master
     ram.slaveClockNodes(0) := dutFixedClockNode
     ram.HBMRefClockNode := hbmClkNode
 
-    // msaga.configNode := xbar.node
-    xbar.node :=  msaga.memNode
+    xbar.node := AXI4ILA("fsa_master") := fsa.memNode
 
-    /*
-    val inst = AXI4RAM(
-      address = AddressSet(0x8000, 0xfff),
-      beatBytes = 4
-    )*/
-    msaga.configNode := AXI4Fragmenter() := AXI4Buffer() := AXI4ILA("xdma_master_lite") := placedXDMA.overlayOutput.masterLite
+    fsa.configNode := AXI4ILA("fsa_config") := AXI4Fragmenter() := AXI4Buffer() := placedXDMA.overlayOutput.masterLite
   }
   override lazy val module: LazyRawModuleImp = new U55CTestHarnessImpl(this)
 }

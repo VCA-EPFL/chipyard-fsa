@@ -13,7 +13,7 @@ import freechips.rocketchip.prci.ClockSinkParameters
 import freechips.rocketchip.resources.SimpleDevice
 import org.chipsalliance.diplomacy.lazymodule._
 import freechips.rocketchip.util.BooleanToAugmentedBoolean
-import msaga.arithmetic.FloatPoint
+import fsa.arithmetic.FloatPoint
 
 import scala.collection.immutable.SeqMap
 
