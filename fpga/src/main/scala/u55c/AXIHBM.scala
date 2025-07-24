@@ -17,18 +17,6 @@ import fsa.arithmetic.FloatPoint
 
 import scala.collection.immutable.SeqMap
 
-/*
-class XilinxChiselHBMIO(val params: Seq[AXI4BundleParameters], val is16GB: Boolean) extends Bundle {
-  val AXI_ACLK = Input(Vec(params.size, Clock()))
-  val AXI_ARRESETN = Input(Vec(params.size, AsyncReset()))
-  val HBM_REF_CLK_0 = Input(Clock())
-  val HBM_REF_CLK_1 = if (is16GB) Some(Input(Clock())) else None
-  val AXI = Flipped(MixedVec(params.map(p => new XilinxAXI4Bundle(p))))
-}
- */
-
-
-
 class XilinxHBMIO(val params: Seq[AXI4BundleParameters], val is16GB: Boolean) extends Bundle {
   val AXI_00_ACLK = Input(Clock())
   val AXI_00_ARESET_N = Input(Reset())
@@ -39,115 +27,7 @@ class XilinxHBMIO(val params: Seq[AXI4BundleParameters], val is16GB: Boolean) ex
   val APB_1_PCLK = Input(Clock())
   val APB_0_PRESET_N = Input(Reset())
   val APB_1_PRESET_N = Input(Reset())
-
-  /*
-  override val elements: SeqMap[String, Data] = SeqMap.from(
-
-    (
-      axis.getElements.zipWithIndex.toSeq.flatMap {
-        case ((axiBundle), idx) =>
-          val p1 = axiBundle.asInstanceOf[XilinxAXI4Bundle].elements.toSeq.map {
-            case (axiFieldName, uintData) =>
-              s"AXI_${idx % 02d}_${axiFieldName.toUpperCase}" -> uintData
-          }
-          val p2 = Seq(
-            s"AXI_${idx % 02d}_ACLK" -> axi_aclks(idx),
-            s"AXI_${idx % 02d}_ARRESETN" -> axi_aresetns(idx)
-          )
-          p1 ++ p2
-      }
-        ++
-        Seq("HBM_REF_CLK_0" -> HBM_REF_CLK_0) ++
-        HBM_REF_CLK_1.map(clk => "HBM_REF_CLK_1" -> clk)
-      ).map { case (k, v) => k -> Input(v) }
-  )
-   */
-
 }
-/*
-object XilinxHBM {
-
-  private val mappingSeq: Seq[(XilinxChiselHBMIO, XilinxHBMIO) => (Data, Data)] = {
-    val chiselNames = new XilinxChiselHBMIO(
-      Seq.fill(32)(AXI4BundleParameters.emptyBundleParams),
-      is16GB = true
-    ).elements.keys
-    chiselNames.map(cn => {
-
-
-      (chiselBundle: XilinxChiselHBMIO, verilogBundle: XilinxHBMIO) => {
-        case "AXI_ACLK" | "AXI_ARRESETN" =>
-          chiselBundle.elements(cn).asInstanceOf[Vec[Data]].zipWithIndex.map {
-            case (elm, idx) => elm -> verilogBundle.elements(s"AXI_${idx % 02d}_${cn.drop(4)}")
-          }
-        case "AXI" =>
-          chiselBundle.elements(cn).asInstanceOf[Vec[XilinxAXI4Bundle]].zipWithIndex.flatMap {
-            case (axi, idx) => {
-              axi.elements.map {
-                case (filed, elm) =>
-                  val verilogName = s"AXI_${idx % 02d}_${filed.toUpperCase}"
-                  verilogBundle.elements.contains(verilogName).option(
-                    elm -> verilogBundle.elements(verilogName)
-                  )
-              }.flatten
-            }
-          }
-        case _ =>
-          verilogBundle.elements.contains(cn).option(
-            chiselBundle.elements(cn) -> verilogBundle.elements(cn)
-          )
-      }
-
-    })
-  }
-
-
-  implicit val hbmView: DataView[XilinxChiselHBMIO, XilinxHBMIO] = DataView(
-    x => new XilinxHBMIO(x.params, x.is16GB), mappingSeq: _*
-  )
-
-  implicit val hbmView2: DataView[XilinxHBMIO, XilinxChiselHBMIO] = hbmView.invert(
-    x => new XilinxChiselHBMIO(x.params, x.is16GB)
-  )
-}
- */
-
-/*
-set_property -dict [list \\
-${(0 until 32).map { i => f"CONFIG.USER_SAXI_${i}%02d {${if (i < portNum) "true" else "false"}}" }.mkString(" \\\n")} ] \\
-  CONFIG.USER_MC0_ECC_BYPASS {true} \\
-  CONFIG.USER_XSDB_INTF_EN {FALSE} \\
-  CONFIG.USER_CLK_SEL_LIST0 {AXI_00_ACLK} \\
-  CONFIG.USER_HBM_CP_1 {6} \\
-   CONFIG.USER_HBM_FBDIV_1 {36} \\
-   CONFIG.USER_HBM_HEX_CP_RES_1 {0x0000A600} \\
-   CONFIG.USER_HBM_HEX_FBDIV_CLKOUTDIV_1 {0x00000902} \\
-   CONFIG.USER_HBM_HEX_LOCK_FB_REF_DLY_1 {0x00001f1f} \\
-   CONFIG.USER_HBM_LOCK_FB_DLY_1 {31} \\
-   CONFIG.USER_HBM_LOCK_REF_DLY_1 {31} \\
-   CONFIG.USER_HBM_RES_1 {10} \\
-   CONFIG.USER_HBM_STACK {2} \\
-   CONFIG.USER_MC_ENABLE_00 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_01 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_02 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_03 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_04 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_05 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_06 {TRUE} \\
-   CONFIG.USER_MC_ENABLE_07 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_08 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_09 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_10 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_11 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_12 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_13 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_14 {TRUE} \\
-   CONFIG.USER_PHY_ENABLE_15 {TRUE} \\
-   CONFIG.USER_SWITCH_ENABLE_01 {TRUE} \\
-] [get_ips ${desiredName}]
-set_property CONFIG.USER_APB_EN {false} [get_ips ${desiredName}]
-set_property CONFIG.USER_HBM_DENSITY {${if (is16GB) "16GB" else "8GB"}} [get_ips ${desiredName}]
-*/
 
 class XilinxHBM
 (
