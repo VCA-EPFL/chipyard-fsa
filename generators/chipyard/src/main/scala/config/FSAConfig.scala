@@ -113,7 +113,7 @@ class WithFbusBeatBytes(n: Int) extends Config((site, here, up) => {
 class BaseFSAConfig(fsaParams: FSAParams, arithmetic: FPArithmeticImpl) extends Config(
   new WithFSASimTSIOverSerialTL ++
   new WithFpFSA(fsaParams, arithmetic) ++
-  /* MSAGA requires > 0.6*row-bytes bandwidth to avoid being memory bandwidth bottlenecked,
+  /* FSA requires > 0.6*row-bytes bandwidth to avoid being memory bandwidth bottlenecked,
      here we give 1 row-bytes by default.
   */
   new WithNBitMemoryBus(
@@ -122,8 +122,8 @@ class BaseFSAConfig(fsaParams: FSAParams, arithmetic: FPArithmeticImpl) extends 
   // use 4 bytes by default
   new WithFbusBeatBytes(4) ++
   /*
-    In simulation, we use slow TSI to push instructions to the MSAGA,
-    to speed up simulation and make sure the MSAGA is not bottlenecked by the TSI,
+    In simulation, we use slow TSI to push instructions to the FSA,
+    to speed up simulation and make sure the FSA is not bottlenecked by the TSI,
     we use a high clock frequency for the harness binder and the front bus.
     TODO: write a SimXDMA to drive the AXI4 front port directly
   */
@@ -138,21 +138,21 @@ class BaseFSAConfig(fsaParams: FSAParams, arithmetic: FPArithmeticImpl) extends 
 )
 
 class FSAConfig(
-                   msagaParams: FSAParams,
+                   fsaParams: FSAParams,
                    arithmetic: FPArithmeticImpl = Configs.fp16MulFp32AddArithmeticImpl
 ) extends Config(
   // collect simulation results
   new WithAXI4WriteTracker ++
-  // inject the MSAGA into the mbus
+  // inject the FSA into the mbus
   new WithFpFSAMBusInjector ++
   // mbus AXI4 -> TL
   new WithMBusErrorDevice ++
-  new BaseFSAConfig(msagaParams, arithmetic)
+  new BaseFSAConfig(fsaParams, arithmetic)
 )
 
 
 /**
-  * Create axi4 IO ports and directly connect them to the MSAGA memory ports.
+  * Create axi4 IO ports and directly connect them to the FSA memory ports.
   * (without going through the TL mbus)
   *
   * In simulation, we still want the axi ports to be connected to the dramsim
@@ -168,7 +168,7 @@ class WithFSADirectAXI4IOBinder extends OverrideLazyIOBinder({
     InModuleBody {
       val ports: Seq[AXI4MemPort] = Option.when(system.fsa_axi4.isDefined) {
         system.fsa_axi4.get.zipWithIndex.map({ case (m, i) =>
-          val port = IO(new ClockedIO(DataMirror.internal.chiselTypeClone[AXI4Bundle](m))).suggestName(s"axi4_msaga_${i}")
+          val port = IO(new ClockedIO(DataMirror.internal.chiselTypeClone[AXI4Bundle](m))).suggestName(s"axi4_fsa_${i}")
           port.bits <> m
           port.clock := clockBundle.clock
           AXI4MemPort(
@@ -211,7 +211,7 @@ class WithMBusZeroDevice extends Config((site, here, up) => {
 
 
 /**
-  * A MSAGA config which directly connects the MSAGA to the AXI4 ports.
+  * A FSA config which directly connects the FSA to the AXI4 ports.
   * Note: the directly connected AXI4 ports are not reachable by the mbus.
   */
 class FSADirectAXI4Config(

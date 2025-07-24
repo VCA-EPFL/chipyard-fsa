@@ -2,9 +2,11 @@ package chipyard.fpga.u55c
 
 import chisel3._
 import chisel3.util._
+
 import scala.collection.immutable.SeqMap
 import freechips.rocketchip.util.ElaborationArtefacts
 import freechips.rocketchip.amba.axi4._
+import freechips.rocketchip.prci.{ClockNode, ClockSinkNode}
 import org.chipsalliance.cde.config.Parameters
 import org.chipsalliance.diplomacy.lazymodule._
 
@@ -74,18 +76,25 @@ class AXI4ILA(
 
 object AXI4ILA {
   def apply(
-    desiredNamePrefix: String,
-    signalFn: AXI4Bundle => Seq[Data] = {
+             desiredNamePrefix: String,
+             // clockNode: ClockSinkNode,
+             signalFn: AXI4Bundle => Seq[Data] = {
       axi => {
         Seq(
           axi.ar.fire, axi.aw.fire, axi.r.fire, axi.w.fire, axi.b.fire,
           axi.ar.valid, axi.ar.ready, axi.aw.valid, axi.aw.ready,
-          axi.ar.bits.addr, axi.aw.bits.addr
+          axi.ar.bits.addr, axi.aw.bits.addr, axi.r.valid, axi.r.ready, axi.r.bits.data, axi.w.ready, axi.w.valid,
+          axi.w.bits.data, axi.w.bits.last, axi.w.bits.strb, axi.aw.bits.size, axi.aw.bits.len
+
         )
       }
     }
   )(implicit p: Parameters): AXI4IdentityNode = {
     val ila = LazyModule(new AXI4ILA(desiredNamePrefix, signalFn))
+    /*
+    InModuleBody {
+      ila.module.clock := clockNode.in.head._1.clock
+    }*/
     ila.node
   }
 }

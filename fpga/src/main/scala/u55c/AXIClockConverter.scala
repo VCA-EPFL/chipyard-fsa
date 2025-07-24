@@ -242,6 +242,204 @@ class XilinxAXI4Bundle(val bundleParams: AXI4BundleParameters, val isAXI4Lite: B
   }
 }
 
+class XilinxAXI4UpperBundle(val bundleParams: AXI4BundleParameters, val isAXI4Lite: Boolean = false, val qos: Boolean = true) extends Bundle {
+  //TODO: User fields
+  require(bundleParams.echoFields == Nil)
+  require(bundleParams.requestFields == Nil)
+  require(bundleParams.responseFields == Nil)
+  require(!isAXI4Lite || (bundleParams.dataBits == 64 || bundleParams.dataBits == 32))
+
+  def AXI4Only[T <: Data](field: T): Option[T] = if (isAXI4Lite) None else Some(field)
+  def axi4LiteSize = log2Ceil(bundleParams.dataBits / 8)
+
+  val AWID    = AXI4Only(Output(UInt(bundleParams.idBits.W)))
+  val AWADDR  = Output(UInt(bundleParams.addrBits.W))
+  val AWLEN   = AXI4Only(Output(UInt(AXI4Parameters.lenBits.W)))
+  val AWSIZE  = AXI4Only(Output(UInt(AXI4Parameters.sizeBits.W)))
+  val AWBURST = AXI4Only(Output(UInt(AXI4Parameters.burstBits.W)))
+  // val AWLOCK  = AXI4Only(Output(UInt(AXI4Parameters.lockBits.W)))
+  // val AWCACHE = AXI4Only(Output(UInt(AXI4Parameters.cacheBits.W)))
+  // val AWPROT  = Output(UInt(AXI4Parameters.protBits.W))
+
+  //val awregion = Output(UInt(AXI4Parameters.regionBits.W))
+  // val AWQOS   = qos.option(AXI4Only(Output(UInt(AXI4Parameters.qosBits.W)))).flatten
+  val AWVALID = Output(Bool())
+  val AWREADY = Input(Bool())
+
+  val WDATA  = Output(UInt(bundleParams.dataBits.W))
+  val WSTRB  = Output(UInt((bundleParams.dataBits / 8).W))
+  val WLAST  = AXI4Only(Output(Bool()))
+  val WVALID = Output(Bool())
+  val WREADY = Input(Bool())
+
+  val BID    = AXI4Only(Input(UInt(bundleParams.idBits.W)))
+  val BRESP  = Input(UInt(AXI4Parameters.respBits.W))
+  val BVALID = Input(Bool())
+  val BREADY = Output(Bool())
+
+  val ARID    = AXI4Only(Output(UInt(bundleParams.idBits.W)))
+  val ARADDR  = Output(UInt(bundleParams.addrBits.W))
+  val ARLEN   = AXI4Only(Output(UInt(AXI4Parameters.lenBits.W)))
+  val ARSIZE  = AXI4Only(Output(UInt(AXI4Parameters.sizeBits.W)))
+  val ARBURST = AXI4Only(Output(UInt(AXI4Parameters.burstBits.W)))
+  // val ARLOCK  = AXI4Only(Output(UInt(AXI4Parameters.lockBits.W)))
+  // val ARCACHE = AXI4Only(Output(UInt(AXI4Parameters.cacheBits.W)))
+  // val ARPROT  = Output(UInt(AXI4Parameters.protBits.W))
+  //val arregion = Output(UInt(AXI4Parameters.regionBits.W))
+  // val ARQOS   = qos.option(AXI4Only(Output(UInt(AXI4Parameters.qosBits.W)))).flatten
+  val ARVALID = Output(Bool())
+  val ARREADY = Input(Bool())
+
+  val RID    = AXI4Only(Input(UInt(bundleParams.idBits.W)))
+  val RDATA  = Input(UInt(bundleParams.dataBits.W))
+  val RRESP  = Input(UInt(AXI4Parameters.respBits.W))
+  val RLAST  = AXI4Only(Input(Bool()))
+  val RVALID = Input(Bool())
+  val RREADY = Output(Bool())
+
+  // TODO: Better name? I really mean rocket-chip type
+  def driveStandardAXI4(axi4: AXI4Bundle, axiClock: Clock, axiReset: Bool): Unit = {
+
+    axi4.aw.bits.id    := AWID.getOrElse(0.U)
+    axi4.aw.bits.addr  := AWADDR
+    axi4.aw.bits.len   := AWLEN.getOrElse(0.U)
+    axi4.aw.bits.size  := AWSIZE.getOrElse(axi4LiteSize.U)
+    axi4.aw.bits.burst := AWBURST.getOrElse(AXI4Parameters.BURST_INCR)
+    // axi4.aw.bits.lock  := AWLOCK.getOrElse(0.U)
+    // axi4.aw.bits.cache := AWCACHE.getOrElse(0.U)
+    // axi4.aw.bits.prot  := AWPROT
+    // axi4.aw.bits.qos   := AWQOS.getOrElse(0.U)
+    axi4.aw.valid      := AWVALID
+    AWREADY            := axi4.aw.ready
+
+    axi4.w.bits.data := WDATA
+    axi4.w.bits.strb := WSTRB
+    axi4.w.bits.last := WLAST.getOrElse(true.B)
+    axi4.w.valid     := WVALID
+    WREADY           := axi4.w.ready
+
+    BID.foreach { _ := axi4.b.bits.id }
+    BRESP        := axi4.b.bits.resp
+    BVALID       := axi4.b.valid
+    axi4.b.ready := BREADY
+
+    axi4.ar.bits.id    := ARID.getOrElse(0.U)
+    axi4.ar.bits.addr  := ARADDR
+    axi4.ar.bits.len   := ARLEN.getOrElse(0.U)
+    axi4.ar.bits.size  := ARSIZE.getOrElse(axi4LiteSize.U)
+    axi4.ar.bits.burst := ARBURST.getOrElse(AXI4Parameters.BURST_INCR)
+    // axi4.ar.bits.lock  := ARLOCK.getOrElse(0.U)
+    // axi4.ar.bits.cache := ARCACHE.getOrElse(0.U)
+    // axi4.ar.bits.prot  := ARPROT
+    // axi4.ar.bits.qos   := ARQOS.getOrElse(0.U)
+    axi4.ar.valid      := ARVALID
+    ARREADY            := axi4.ar.ready
+
+    RID.foreach { _ := axi4.r.bits.id }
+    RDATA        := axi4.r.bits.data
+    RRESP        := axi4.r.bits.resp
+    RLAST.foreach { _ := axi4.r.bits.last }
+    RVALID       := axi4.r.valid
+    axi4.r.ready := RREADY
+    if (isAXI4Lite) {
+      withClockAndReset(axiClock, axiReset) {
+        assert(!axi4.r.valid || axi4.r.bits.last)
+      }
+    }
+  }
+
+  def drivenByStandardAXI4(axi4: AXI4Bundle, axiClock: Clock, axiReset: Bool): Unit = {
+    AWID.foreach { _ := axi4.aw.bits.id }
+    AWADDR        := axi4.aw.bits.addr
+    AWLEN.foreach { _ := axi4.aw.bits.len }
+    AWSIZE.foreach { _ := axi4.aw.bits.size }
+    AWBURST.foreach { _ := axi4.aw.bits.burst }
+    // AWLOCK.foreach { _ := axi4.aw.bits.lock }
+    // AWCACHE.foreach { _ := axi4.aw.bits.cache }
+    // AWPROT        := axi4.aw.bits.prot
+    // AWQOS.foreach { _ := axi4.aw.bits.qos }
+    AWVALID       := axi4.aw.valid
+    axi4.aw.ready := AWREADY
+
+    WDATA        := axi4.w.bits.data
+    WSTRB        := axi4.w.bits.strb
+    WLAST.foreach { _ := axi4.w.bits.last }
+    WVALID       := axi4.w.valid
+    axi4.w.ready := WREADY
+
+    axi4.b.bits.id   := BID.getOrElse(0.U)
+    axi4.b.bits.resp := BRESP
+    axi4.b.valid     := BVALID
+    BREADY           := axi4.b.ready
+
+    ARID.foreach { _ := axi4.ar.bits.id }
+    ARADDR        := axi4.ar.bits.addr
+    ARLEN.foreach { _ := axi4.ar.bits.len }
+    ARSIZE.foreach { _ := axi4.ar.bits.size }
+    ARBURST.foreach { _ := axi4.ar.bits.burst }
+    // ARLOCK.foreach { _ := axi4.ar.bits.lock }
+    // ARCACHE.foreach { _ := axi4.ar.bits.cache }
+    // ARPROT        := axi4.ar.bits.prot
+    // ARQOS.foreach { _ := axi4.ar.bits.qos }
+    ARVALID       := axi4.ar.valid
+    axi4.ar.ready := ARREADY
+
+    axi4.r.bits.id   := RID.getOrElse(0.U)
+    axi4.r.bits.data := RDATA
+    axi4.r.bits.resp := RRESP
+    axi4.r.bits.last := RLAST.getOrElse(true.B)
+    axi4.r.valid     := RVALID
+    RREADY           := axi4.r.ready
+
+    if (isAXI4Lite) {
+      withClockAndReset(axiClock, axiReset) {
+        assert(!axi4.aw.valid || axi4.aw.bits.len === 0.U)
+        assert(!axi4.aw.valid || axi4.aw.bits.size === axi4LiteSize.U)
+        // Use a diplomatic widget to strip down the ID space to a single value
+        assert(!axi4.aw.valid || axi4.aw.bits.id === 0.U)
+        assert(!axi4.w.valid || axi4.w.bits.last)
+        assert(!axi4.ar.valid || axi4.ar.bits.len === 0.U)
+        // Use a diplomatic widget to strip down the ID space to a single value
+        assert(!axi4.ar.valid || axi4.ar.bits.id === 0.U)
+        assert(!axi4.ar.valid || axi4.ar.bits.size === axi4LiteSize.U)
+      }
+    }
+  }
+
+  def tieoffAsManager(): Unit = {
+    AWID.foreach { _ := DontCare }
+    AWADDR  := DontCare
+    AWLEN.foreach { _ := DontCare }
+    AWSIZE.foreach { _ := DontCare }
+    AWBURST.foreach { _ := DontCare }
+    // AWLOCK.foreach { _ := DontCare }
+    // AWCACHE.foreach { _ := DontCare }
+    // AWPROT  := DontCare
+    // AWQOS.foreach { _ := DontCare }
+    AWVALID := false.B
+
+    WDATA  := DontCare
+    WSTRB  := DontCare
+    WLAST.foreach { _ := DontCare }
+    WVALID := false.B
+
+    BREADY := false.B
+
+    ARID.foreach { _ := DontCare }
+    ARADDR  := DontCare
+    ARLEN.foreach { _ := DontCare }
+    ARSIZE.foreach { _ := DontCare }
+    ARBURST.foreach { _ := DontCare }
+    // ARLOCK.foreach { _ := DontCare }
+    // ARCACHE.foreach { _ := DontCare }
+    // ARPROT  := DontCare
+    // ARQOS.foreach { _ := DontCare }
+    ARVALID := false.B
+
+    RREADY := false.B
+  }
+}
+
 class AXI4ClockConverter(
   bundleParams:             AXI4BundleParameters,
   override val desiredName: String,

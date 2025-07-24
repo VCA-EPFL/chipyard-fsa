@@ -105,7 +105,7 @@ ifeq ($(SUB_PROJECT),u55c)
 	MODEL             ?= U55CFPGATestHarness
 	VLOG_MODEL        ?= U55CFPGATestHarness
 	MODEL_PACKAGE     ?= chipyard.fpga.u55c
-	CONFIG            ?= MSAGAU55CConfig
+	CONFIG            ?= FSAU55CConfig
 	CONFIG_PACKAGE    ?= chipyard.fpga.u55c
 	GENERATOR_PACKAGE ?= chipyard
 	TB                ?= none # unused
